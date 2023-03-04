@@ -9,10 +9,11 @@ class Action:
         self.required_action_names = [] if required_action_names is None else required_action_names  #
         self.disallowed_action_names = [] if disallowed_action_names is None else disallowed_action_names  #
         self.duration = duration
-        self.timer = 0
+        self.timer = duration
         self.last = None
         self.key = None
         self.stackable = stackable
+        self.ended = False
 
     def __repr__(self):
         return f'<Action: {self.name}>'
@@ -25,7 +26,7 @@ class Action:
         return False
 
     def _is_active(self):
-        return self.timer > 0
+        return self.ended == False
 
     def _is_possible(self):
         '''
@@ -34,7 +35,7 @@ class Action:
         # the player or "controler" does not have an active status that prevents this action
         if not set(self.disallowed_action_names).isdisjoint(set([a.name for a in self.controler.actions_active])):
             common = list(set(self.disallowed_action_names).intersection(set([a.name for a in self.controler.actions_active])))
-            print(f'action: {self.name} was not possible due to incompatible action currently active: {", ".join(common)}')
+            print(f'## action: {self.name} was not possible due to incompatible action currently active: {", ".join(common)}')
             return False
         # the player has all the actives status required to run this action# 
         if not set(self.required_action_names).issubset(set([a.name for a in self.controler.actions_active])):
@@ -66,7 +67,8 @@ class Action:
 
     def end(self):
         '''ends actions'''
-        print(f'action: {self.name} ended')
+        print(f'# action: {self.name} ended')
+        self.ended = True
 
     def tick(self):
         '''
@@ -76,39 +78,45 @@ class Action:
         actions
         '''
         # activation
-            # check if the action was requested by user or other
-            # check if the action meets the conditions to be activated
-                # no preventing action is active
-                # all required actions are active
-                # if already active
-                    # did it expire -- if not
-                        # is it stackable
-                            # if not it can't be run
-                            # if yes, add to timer or increase effect
-            # activate action
-                # add to list of actions_active of the `controler`
-                # does it have a duration
-                    # if so, activate timer
-                    # set the `last` value (time it was last activated)
-            # may need to interupt some currently active actions (?) 
-                # ex.: receiving a hit might interupt an attack
+        #     check if the action was requested by user or other
+        #     check if the action meets the conditions to be activated
+        #         no preventing action is active
+        #         all required actions are active
+        #         if already active
+        #             did it expire -- if not
+        #                 is it stackable
+        #                     if not it can't be run
+        #                     if yes, add to timer or increase effect
+        #     activate action
+        #         add to list of actions_active of the `controler`
+        #         does it have a duration
+        #             if so, activate timer
+        #             set the `last` value (time it was last activated)
+        #     may need to interupt some currently active actions (?) 
+        #         ex.: receiving a hit might interupt an attack
         # Deactivation
-            # check if the action is in progress
-                # check if the action has ended
-                    # timer expires
-                    # required actions for continuation of this action are no longer present
-                    # preventing actions are now active making this action interupted
-                        # ex.: player attacking but jump and thus interupted it
+        if self.ended == False and self.duration is not None:
+            if self.timer > 0:
+                self.timer -= 1
+            if self.timer < 1:
+                self.end()
+        if self.ended == True:
+            return            
+                
+        #     check if the action is in progress
+        #         check if the action has ended
+        #             timer expires
+        #             required actions for continuation of this action are no longer present
+        #             preventing actions are now active making this action interupted
+        #                 ex.: player attacking but jump and thus interupted it
         
         # Action relationships
-            # required_activation_actions
-            # required_continuation_actions (subset of required_activation_actions)
-            # preventing_activation_actions
-            # interupting_actions (ex.: Jump does not prevent Attack but will interupt it on activation)
-            # 
-
-        if self._is_triggered and self._is_possible:
-            self.do()
+        #     required_activation_actions
+        #     required_continuation_actions (subset of required_activation_actions)
+        #     preventing_activation_actions
+        #     interupting_actions (ex.: Jump does not prevent Attack but will interupt it on activation)
+        # if self._is_triggered and self._is_possible:
+        #     self.run()
 
     def run(self):
         '''initiate action'''

@@ -26,6 +26,19 @@ The action Jump may interupt other actions:
 * [x] activation of action
 * [x] limitation by blocker action present
 * [x] limitation by requirement action missing
-* [ ] manage action end
-* [ ] manage action duration
+* [x] manage action end
+* [x] manage action duration
+* [ ] add specific actions with action keys and animations
+    * [x] add rect and fill with color to be able to see player
+    * [x] move right
+    * [x] modify move so that it moves for a determined amount of time (4 seconds)
+        * [x] used a closure and timer var to run 180 ticks ~ 3 seconds (at 60 FPS)
+    * [x] allow move up
+    * [x] have multiple movement types
+        * [x] modify the movement so that they can chain instead of add
+        * [x] modify the movement so that it can interupt
+    * [ ] add animations to the move actions
+* [ ] experiment with speed ramp up and ramp down
+    * [ ] use s curve ramp up
+    * [ ] usr s curve ramp down
 * [ ] add images and visualize the process
