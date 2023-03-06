@@ -10,6 +10,11 @@ class MovementType(Enum):
 
 
 class Movement:
+    '''
+    Encapsulates the movement (direction, duration and speed) of a pygame element (other).
+    Duration of a Movement serves as a timer. It is decremented and once reaches 0, the Movement
+    has served its purpose.
+    '''
     def __init__(self, other, type:MovementType, direction, duration, speed):
         self.other = other
         self.type = type
@@ -19,12 +24,17 @@ class Movement:
 
 
 class Movements:
+    '''
+    Uses Movement class to encapsulate movement.
+    Gets called at every tick of pygame to move objects.
+    Once a Movement has "expired" (aka duration is decremented to 0), it is removed (aka purged).
+    '''
     def __init__(self):
         self.movements:Movement = []
 
     def _fuse(self, movement:'Movement'):
         '''
-        Fuse two Movements together
+        Fuse two Movements together: the current movement and the new one. Other movements are descarded
         The resulting action will have the following attributes
             direction:
                 direction1 + direction2
@@ -37,9 +47,13 @@ class Movements:
         if is_empty(self.movements):
             self.movements.append(movement)
             return
-        self.movements[0].direction += movement.direction
-        self.movements[0].duration += movement.duration
-        self.movements[0].speed += movement.speed
+        self.movements = [self.movements[0]]
+        if (self.movements[0].direction + movement.direction).magnitude() == 0:
+            self.movements[0].direction = self.movements[0].direction + movement.direction
+        else:
+            self.movements[0].direction = (self.movements[0].direction + movement.direction).normalize()
+        self.movements[0].duration = movement.duration
+        self.movements[0].speed = movement.speed
 
     def add(self, movement:'Movement'):
         '''

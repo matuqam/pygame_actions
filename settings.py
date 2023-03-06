@@ -1,8 +1,13 @@
 # imported by imports
 
+import pygame
 from pygame.locals import *
 
 SCREEN_SIZE = (800, 600)
+
+MOVE_DURATION = 5
+KEY_REPEAT = 100
+MOVEMENT_EVENT = pygame.event.custom_type()
 
 KEY_UP = K_w
 KEY_DOWN = K_s

@@ -1,6 +1,7 @@
 from imports import *
 from action import Action
 from movement import Movements, Movement, MovementType
+from input import Input, InputType
 
 
 class Player:
@@ -15,11 +16,14 @@ class Player:
 
         self.rect = rect if rect is not None else Rect(64, 64, 0, 0)
         self.surface = pygame.Surface(size=(64,64))
-        self.speed = 1
+        self.speed = 2
         self.direction = pygame.Vector2()
         self.timer = lambda:False
 
         self.movements = Movements()
+        self.movement_type = MovementType.SEQUENCIAL
+
+        self.input = Input()
 
     def add_possible_action(self, action):
         '''add action to possible_actions'''
@@ -36,40 +40,35 @@ class Player:
                 action.run()
 
     def process_input(self, events):
-        MOVE_DURATION = 180 # (in ticks)
-        for event in events:
-            if event.type == KEYDOWN:
-                if event.key == KEY_UP:
-                    # self.timer = self.set_timer(MOVE_DURATION)
-                    # self.direction += pygame.Vector2(0, -self.speed)
-                    self.movements.add(Movement(self, MovementType.SEQUENCIAL, pygame.Vector2(0, -self.speed), 60, self.speed))
-                if event.key == KEY_DOWN:
-                    # self.timer = self.set_timer(MOVE_DURATION)
-                    # self.direction += pygame.Vector2(0, self.speed)
-                    self.movements.add(Movement(self, MovementType.SEQUENCIAL, pygame.Vector2(0, self.speed), 60, self.speed))
-                if event.key == KEY_LEFT:
-                    # self.timer = self.set_timer(MOVE_DURATION)
-                    # self.direction += pygame.Vector2(-self.speed, 0)
-                    self.movements.add(Movement(self, MovementType.SEQUENCIAL, pygame.Vector2(-self.speed, 0), 60, self.speed))
-                if event.key == KEY_RIGHT:
-                    self.movements.add(Movement(self, MovementType.SEQUENCIAL, pygame.Vector2(self.speed, 0), 60, self.speed))
-                if event.key == K_i:
-                    self.movements.add(Movement(self, MovementType.INTERUPT, pygame.Vector2(self.speed * 2, 0), 60, self.speed))
-                if event.key == K_o:
-                    self.movements.add(Movement(self, MovementType.ADDITIVE, pygame.Vector2(0, self.speed), 60, self.speed))
-                    # self.timer = self.set_timer(MOVE_DURATION)
-                    # self.direction += pygame.Vector2(self.speed, 0)
-            # if event.type == KEYUP:
-            #     if event.key == KEY_UP:
-            #         self.direction -= pygame.Vector2(0, -self.speed)
-            #     if event.key == KEY_DOWN:
-            #         self.direction -= pygame.Vector2(0, self.speed)
-            #     if event.key == KEY_LEFT:
-            #         self.direction -= pygame.Vector2(-self.speed, 0)
-            #     if event.key == KEY_RIGHT:
-            #         self.direction -= pygame.Vector2(self.speed, 0)
-        self.move()
+        self.input.update(events)
+        input_type = InputType._KEYPRESSED
+
+        if self.input(KEY_UP, input_type):
+            direction = pygame.Vector2(0, -self.speed)
+            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+
+        if self.input(KEY_DOWN, input_type):
+            direction = pygame.Vector2(0, self.speed)
+            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+
+        if self.input(KEY_LEFT, input_type):
+            direction = pygame.Vector2(-self.speed, 0)
+            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+
+        if self.input(KEY_RIGHT, input_type):
+            direction = pygame.Vector2(self.speed, 0)
+            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
     
+        if self.input(K_u, InputType._KEYDOWN):
+            self.movement_type = MovementType.SEQUENCIAL
+        if self.input(K_i, InputType._KEYDOWN):
+            self.movement_type = MovementType.INTERUPT
+        # The MOVEMENT event "limiter" works well with this MovementType
+        # ie: it produces a smooth movement as it allows the moement queue to 
+        # clear preventing weird vector math #
+        if self.input(K_o, InputType._KEYDOWN):
+            self.movement_type = MovementType.ADDITIVE
+
     def set_timer(self, ticks):
         def count():
             nonlocal ticks
@@ -78,20 +77,39 @@ class Player:
         return count
 
     def move(self):
+        '''
+        The use of timer works in combination with the KEYDOWN way of checking
+        for movement keys. It allows an otherwise puctual event (the KEYDOWN event)
+        to have a lasting effect but yet still limited unlike the key.get_pressed()
+
+        It can work with movement that needs to be increments. Or attacks that
+        need to be intermittent such as sword attacks.
+
+        moving in this manner was called like this:
+            ```
+            ...
+            if event.type == KEYDOWN:
+                ...
+                self.timer = self.set_timer(MOVE_DURATION)
+                self.direction += pygame.Vector2(0, -self.speed)
+            ...
+            self.move()
+            ```
+        '''
         if self.timer():
             self.rect.center += self.direction * self.speed
     
     def manhandle(self, direction, speed):
         '''
         moved by other object
+        This adds another movement strategy beside self.move()
+        Notably, it does not use the self.timer()
         '''
         self.rect.center += (direction * speed)
         
-
     def display(self):
         display = pygame.display.get_surface()
         display.blit(self.surface, self.rect.topleft)
-
 
     def update(self):
         self.actions_active = [a for a in self.actions_active if a.ended == False]
@@ -103,23 +121,23 @@ class Player:
         self.display()
 
 
-# if __name__ == '__main__':
-#     player = Player()
+if __name__ == '__main__':
+    player = Player()
 
-#     go = Action(name='go', controler=player)
-#     run = Action(name='run', controler=player, required_action_names=['go'])
-#     get_to_the_choppa = Action(name='get to the choppa', controler=player, required_action_names=['go', 'run'])
-#     hide = Action(name='hide', controler=player, disallowed_action_names=['run', 'get to the choppa'])
+    go = Action(name='go', controler=player)
+    run = Action(name='run', controler=player, required_action_names=['go'])
+    get_to_the_choppa = Action(name='get to the choppa', controler=player, required_action_names=['go', 'run'])
+    hide = Action(name='hide', controler=player, disallowed_action_names=['run', 'get to the choppa'])
 
-#     player.add_possible_action([go, run, get_to_the_choppa, hide])
-#     player.take_action('get to the choppa')
-#     player.take_action('go')
-#     player.take_action('get to the choppa')
-#     player.take_action('run')
-#     player.take_action('get to the choppa')
-#     player.take_action('hide')
-#     player.tick()
-#     print(f'{player.actions_active=}')
-#     run.end()
-#     player.tick()
-#     print(f'{player.actions_active=}')
+    player.add_possible_action([go, run, get_to_the_choppa, hide])
+    player.take_action('get to the choppa')
+    player.take_action('go')
+    player.take_action('get to the choppa')
+    player.take_action('run')
+    player.take_action('get to the choppa')
+    player.take_action('hide')
+    # player.tick()  # This method was removed in a previous update.
+    print(f'{player.actions_active=}')
+    run.end()
+    # player.tick()  # This method was removed in a previous update.
+    print(f'{player.actions_active=}')
