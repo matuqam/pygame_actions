@@ -11,7 +11,7 @@ clock = pygame.time.Clock()
 # too fast
 # MOVEMENT_EVENT = pygame.event.custom_type()
 pygame.time.set_timer(pygame.event.Event(MOVEMENT_EVENT), KEY_REPEAT)
-pygame.key.set_repeat(KEY_REPEAT, KEY_REPEAT)
+# pygame.key.set_repeat(KEY_REPEAT, KEY_REPEAT)  # removed to test specific movement dynamics
 
 
 

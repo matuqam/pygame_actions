@@ -43,22 +43,72 @@ class Player:
         self.input.update(events)
         input_type = InputType._KEYPRESSED
 
+        # up: back step, start slow, normal, finish slow
         if self.input(KEY_UP, input_type):
+            # normal movement
+            direction = pygame.Vector2(0, -self.speed).normalize()
+            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, 4))
+        if self.input(KEY_UP, InputType._KEYDOWN):
+            # back step (clears movement queue)
+            direction = pygame.Vector2(0, self.speed)
+            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION//2, self.speed * 4))
+            # start slow
             direction = pygame.Vector2(0, -self.speed)
-            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, direction, MOVE_DURATION * 8, 1))
+        if self.input(KEY_UP, InputType._KEYUP):
+            # end slow (clears movement queue)
+            direction = pygame.Vector2(0, -self.speed)
+            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION * 4, 1))
 
+        # down
         if self.input(KEY_DOWN, input_type):
             direction = pygame.Vector2(0, self.speed)
             self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+        if self.input(KEY_DOWN, InputType._KEYDOWN):
+            # back step (clears movement queue)
+            direction = pygame.Vector2(0, -self.speed)
+            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION//2, self.speed * 4))
+            # start slow
+            direction = pygame.Vector2(0, self.speed)
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, direction, MOVE_DURATION * 8, 1))
+        if self.input(KEY_DOWN, InputType._KEYUP):
+            # end slow (clears movement queue)
+            direction = pygame.Vector2(0, self.speed)
+            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION * 4, 1))
 
+        # left
         if self.input(KEY_LEFT, input_type):
             direction = pygame.Vector2(-self.speed, 0)
             self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+        if self.input(KEY_LEFT, InputType._KEYDOWN):
+            # back step (clears movement queue)
+            direction = pygame.Vector2(self.speed, 0)
+            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION//2, self.speed * 4))
+            # start slow
+            direction = pygame.Vector2(-self.speed, 0)
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, direction, MOVE_DURATION * 8, 1))
+        if self.input(KEY_LEFT, InputType._KEYUP):
+            # end slow (clears movement queue)
+            direction = pygame.Vector2(-self.speed, 0)
+            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION * 4, 1))
 
+        # right
         if self.input(KEY_RIGHT, input_type):
             direction = pygame.Vector2(self.speed, 0)
             self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
-    
+        if self.input(KEY_RIGHT, InputType._KEYDOWN):
+            # back step (clears movement queue)
+            direction = pygame.Vector2(-self.speed, 0)
+            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION//2, self.speed * 4))
+            # start slow
+            direction = pygame.Vector2(self.speed, 0)
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, direction, MOVE_DURATION * 8, 1))
+        if self.input(KEY_RIGHT, InputType._KEYUP):
+            # end slow (clears movement queue)
+            direction = pygame.Vector2(self.speed, 0)
+            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION * 4, 1))
+
+
         if self.input(K_u, InputType._KEYDOWN):
             self.movement_type = MovementType.SEQUENCIAL
         if self.input(K_i, InputType._KEYDOWN):
