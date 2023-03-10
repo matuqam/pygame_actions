@@ -28,7 +28,7 @@ The action Jump may interupt other actions:
 * [x] limitation by requirement action missing
 * [x] manage action end
 * [x] manage action duration
-* [ ] add specific actions with action keys and animations
+* [x] add specific actions with action keys
     * [x] add rect and fill with color to be able to see player
     * [x] move right
     * [x] modify move so that it moves for a determined amount of time (4 seconds)
@@ -37,8 +37,13 @@ The action Jump may interupt other actions:
     * [x] have multiple movement types
         * [x] modify the movement so that they can chain instead of add
         * [x] modify the movement so that it can interupt
-    * [ ] add animations to the move actions
+    * [x] manage multiple direction key pressed (lef + right should cancell out)
+        * [x] manage opposite movement keys pressed at the same time
+        * [x] manage complementary keys pressed at the same time (aka diagonal movement)
+* [x] add animations to the move actions
 * [ ] experiment with speed ramp up and ramp down
-    * [ ] use s curve ramp up
-    * [ ] usr s curve ramp down
-* [ ] add images and visualize the process
+    * [x] use s curve ramp up
+    * [ ] usr s curve ramp down # this requires either fancy function or a combo or actions each having their own function
+
+* [x] manage movement and visuals with Motion instance
+    * [x] a running movement must allow to hold a Surface to be displayed while it is running. If it does not have a Surface, the standard Surface of the object the movement is applied on continues to use its current Surface

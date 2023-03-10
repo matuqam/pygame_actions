@@ -11,9 +11,9 @@ class Level:
     def process_input(self, game_events):
         for e in self.elements:
             e.process_input(game_events)
+            # e.process_input_complex(game_events)  # alternative input processing mode
 
     def update(self):
         for e in self.elements:
             e.update()
-
 

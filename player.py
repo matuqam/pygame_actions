@@ -1,7 +1,7 @@
 from imports import *
 from action import Action
-from movement import Movements, Movement, MovementType
-from input import Input, InputType
+from movement import Movements, Movement, MovementType, is_empty
+from input import Input, InputType, MoveInput, Events
 
 
 class Player:
@@ -23,8 +23,14 @@ class Player:
         self.movements = Movements()
         self.movement_type = MovementType.SEQUENCIAL
 
-        self.input = Input()
+        self.events = Events()
+        self.input = Input(self.events)
+        self.move_input = MoveInput(self.events)
 
+        self.dash_speed = 8
+        self.dash_surfaces = load_images('./graphics/player/right')
+
+    # actions
     def add_possible_action(self, action):
         '''add action to possible_actions'''
         try:
@@ -39,75 +45,110 @@ class Player:
             if action.name == action_name:
                 action.run()
 
+    def set_timer(self, ticks):
+        def count():
+            nonlocal ticks
+            ticks -= 1
+            return ticks > 0
+        return count
+
     def process_input(self, events):
-        self.input.update(events)
+        '''
+        Process input and move player.
+        The movement keys are processed as a whole to produce a coherent resulting direction.
+        This is subject to the limits of `Key rollover`.
+        '''
+        self.events.update(events)
+
+        # regular movement
+        direction = self.move_input()
+        if direction is not None:
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, MOVE_DURATION * 10, direction, 2))
+        
+        # dash
+        direction = pygame.Vector2(1, 0)
+        if self.input(K_SPACE, InputType._KEYDOWN):
+            self.movements.add(Movement(self, MovementType.INTERUPT, 90, direction, self.dash_speed, interupt=False))
+
+
+    def process_input_complex(self, events):
+        '''
+        Process input and move player.
+        Does not use special input processing for movement keys (aka up, down, left, right).
+        Key presses are evaluated independently and the resulting action is taken. The movements
+        instance logic dictates the resulting movement.
+        
+        '''
+        self.events.update(events)
         input_type = InputType._KEYPRESSED
 
         # up: back step, start slow, normal, finish slow
         if self.input(KEY_UP, input_type):
             # normal movement
             direction = pygame.Vector2(0, -self.speed).normalize()
-            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, 4))
+            self.movements.add(Movement(self, self.movement_type, MOVE_DURATION, direction, 4))
         if self.input(KEY_UP, InputType._KEYDOWN):
             # back step (clears movement queue)
             direction = pygame.Vector2(0, self.speed)
-            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION//2, self.speed * 4))
+            self.movements.add(Movement(self, MovementType.INTERUPT, MOVE_DURATION//2, direction, self.speed * 4))
             # start slow
             direction = pygame.Vector2(0, -self.speed)
-            self.movements.add(Movement(self, MovementType.SEQUENCIAL, direction, MOVE_DURATION * 8, 1))
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, MOVE_DURATION * 8, direction, 1))
         if self.input(KEY_UP, InputType._KEYUP):
             # end slow (clears movement queue)
             direction = pygame.Vector2(0, -self.speed)
-            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION * 4, 1))
+            self.movements.add(Movement(self, MovementType.INTERUPT, MOVE_DURATION * 4, direction, 1))
 
         # down
         if self.input(KEY_DOWN, input_type):
             direction = pygame.Vector2(0, self.speed)
-            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+            self.movements.add(Movement(self, self.movement_type, MOVE_DURATION, direction, self.speed))
         if self.input(KEY_DOWN, InputType._KEYDOWN):
             # back step (clears movement queue)
             direction = pygame.Vector2(0, -self.speed)
-            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION//2, self.speed * 4))
+            self.movements.add(Movement(self, MovementType.INTERUPT, MOVE_DURATION//2, direction, self.speed * 4))
             # start slow
             direction = pygame.Vector2(0, self.speed)
-            self.movements.add(Movement(self, MovementType.SEQUENCIAL, direction, MOVE_DURATION * 8, 1))
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, MOVE_DURATION * 8, direction, 1))
         if self.input(KEY_DOWN, InputType._KEYUP):
             # end slow (clears movement queue)
             direction = pygame.Vector2(0, self.speed)
-            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION * 4, 1))
+            self.movements.add(Movement(self, MovementType.INTERUPT, MOVE_DURATION * 4, direction, 1))
 
         # left
         if self.input(KEY_LEFT, input_type):
             direction = pygame.Vector2(-self.speed, 0)
-            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+            self.movements.add(Movement(self, self.movement_type, MOVE_DURATION, direction, self.speed))
         if self.input(KEY_LEFT, InputType._KEYDOWN):
             # back step (clears movement queue)
             direction = pygame.Vector2(self.speed, 0)
-            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION//2, self.speed * 4))
+            self.movements.add(Movement(self, MovementType.INTERUPT, MOVE_DURATION//2, direction, self.speed * 4))
             # start slow
             direction = pygame.Vector2(-self.speed, 0)
-            self.movements.add(Movement(self, MovementType.SEQUENCIAL, direction, MOVE_DURATION * 8, 1))
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, MOVE_DURATION * 8, direction, 1))
         if self.input(KEY_LEFT, InputType._KEYUP):
             # end slow (clears movement queue)
             direction = pygame.Vector2(-self.speed, 0)
-            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION * 4, 1))
+            self.movements.add(Movement(self, MovementType.INTERUPT, MOVE_DURATION * 4, direction, 1))
 
         # right
         if self.input(KEY_RIGHT, input_type):
             direction = pygame.Vector2(self.speed, 0)
-            self.movements.add(Movement(self, self.movement_type, direction, MOVE_DURATION, self.speed))
+            self.movements.add(Movement(self, self.movement_type, MOVE_DURATION * 4, direction, self.speed))
         if self.input(KEY_RIGHT, InputType._KEYDOWN):
             # back step (clears movement queue)
             direction = pygame.Vector2(-self.speed, 0)
-            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION//2, self.speed * 4))
+            self.movements.add(Movement(self, MovementType.INTERUPT, MOVE_DURATION//2, direction, self.speed * 4))
+            # pause
+            direction = pygame.Vector2(0, 0)
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, MOVE_DURATION * 4, direction, 1))
             # start slow
             direction = pygame.Vector2(self.speed, 0)
-            self.movements.add(Movement(self, MovementType.SEQUENCIAL, direction, MOVE_DURATION * 8, 1))
+            self.movements.add(Movement(self, MovementType.SEQUENCIAL, MOVE_DURATION * 4, direction, 1))
         if self.input(KEY_RIGHT, InputType._KEYUP):
             # end slow (clears movement queue)
             direction = pygame.Vector2(self.speed, 0)
-            self.movements.add(Movement(self, MovementType.INTERUPT, direction, MOVE_DURATION * 4, 1))
-
+            self.movements.add(Movement(self, MovementType.INTERUPT, MOVE_DURATION * 4, direction, 1))
 
         if self.input(K_u, InputType._KEYDOWN):
             self.movement_type = MovementType.SEQUENCIAL
@@ -119,13 +160,8 @@ class Player:
         if self.input(K_o, InputType._KEYDOWN):
             self.movement_type = MovementType.ADDITIVE
 
-    def set_timer(self, ticks):
-        def count():
-            nonlocal ticks
-            ticks -= 1
-            return ticks > 0
-        return count
 
+    # movement
     def move(self):
         '''
         The use of timer works in combination with the KEYDOWN way of checking
@@ -156,18 +192,39 @@ class Player:
         Notably, it does not use the self.timer()
         '''
         self.rect.center += (direction * speed)
-        
+        self.loop_position()
+
+    def loop_position(self):
+        if self.rect.left > pygame.display.get_surface().get_rect().right:
+            self.rect.right = 0
+        elif self.rect.right < 0:
+            self.rect.left = pygame.display.get_surface().get_rect().right
+        elif self.rect.bottom < 0:
+            self.rect.top = pygame.display.get_surface().get_rect().bottom
+        elif self.rect.top > pygame.display.get_surface().get_rect().bottom:
+            self.rect.bottom = 0
+
+    # visual
+    def set_surface(self):
+        if not is_empty(self.movements.movements):
+            movement = self.movements.movements[0]
+            if movement.speed == self.dash_speed:
+                self.surface = self.dash_surfaces[(pygame.time.get_ticks() // 50) % len(self.dash_surfaces)]
+            else:
+                self.surface = pygame.Surface(size=(64,64))
+
     def display(self):
         display = pygame.display.get_surface()
+        self.set_surface()
         display.blit(self.surface, self.rect.topleft)
 
     def update(self):
-        self.actions_active = [a for a in self.actions_active if a.ended == False]
+        # self.actions_active = [a for a in self.actions_active if a.ended == False]
         # use movement.Movement for movements
         self.movements.update()
 
-        for a in self.actions_active:
-            a.tick()
+        # for a in self.actions_active:
+        #     a.tick()
         self.display()
 
 
